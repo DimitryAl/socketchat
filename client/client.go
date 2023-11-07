@@ -1,9 +1,9 @@
 package client
 
 type TClient struct {
-	ip       int
-	nickname string
-	isOnline bool
+	Ip       string
+	Nickname string
+	IsOnline bool
 }
 
-var curClients = make([]TClient, 10) // All clients
+var KnownClients = make([]TClient, 0) // All clients

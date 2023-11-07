@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	//"github.com/DimitryAl/SocketChat/client"
 	"log"
 	"net"
+	client "socketchat/client"
 )
 
 func readClient(conn net.Conn) {
@@ -12,13 +12,41 @@ func readClient(conn net.Conn) {
 
 	buf := make([]byte, 32) // Bufer for client message
 
-	for {
-		readMessage, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println("err")
-			break
+	res := false
+	test := func() {
+		for _, v := range client.KnownClients {
+			if conn.RemoteAddr().String() == v.Ip {
+				res = true
+			}
 		}
-		fmt.Println(readMessage)
+	}
+	test()
+
+	for {
+
+		if res {
+			_, err := conn.Read(buf)
+
+			if err != nil {
+				fmt.Println("err")
+				break
+			}
+
+			fmt.Println(buf)
+		} else {
+			conn.Write([]byte("Enter your nickname"))
+
+			_, err := conn.Read(buf)
+
+			if err != nil {
+				fmt.Println("err")
+				break
+			}
+
+			fmt.Println(buf)
+			client.KnownClients = append(client.KnownClients, client.TClient{Ip: conn.RemoteAddr().String(), Nickname: string(buf[:]), IsOnline: true})
+
+		}
 	}
 
 }
@@ -35,6 +63,7 @@ func main() {
 
 	for {
 		conn, err := listener.Accept() // Accept TCP-connection from client
+
 		if err != nil {
 			continue
 		}
