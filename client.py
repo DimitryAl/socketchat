@@ -2,6 +2,11 @@
 import socket 
 import select 
 import sys 
+import threading
+
+out_message = ""
+flag = False
+
 
 def main():
 
@@ -33,11 +38,33 @@ def main():
 				f.write(str(in_message) + '\n')
 		else:
 			#out_message = sys.stdin.readline()
-			out_message = input("You: ")
-			server.send(bytes(out_message, 'utf-8'))
-			f.write(out_message + '\n') 
-	
+			#out_message = input("You: ")
+			global out_message
+			global flag
+			if flag:
+				server.send(bytes(out_message, 'utf-8'))
+				f.write(out_message + '\n') 
+				out_message = ""
+				flag = False
+
 	server.close()
 
+def reading():
+	global flag
+	global out_message
+	while True:
+		if flag == False:
+			out_message = sys.stdin.readline()	
+			flag = True
+			sys.stdin.flush()
 
-main()
+
+
+
+p1 = threading.Thread(target=reading)
+p2 = threading.Thread(target=main)
+p1.start()
+p2.start()
+p1.join()
+p2.join()
+# main()

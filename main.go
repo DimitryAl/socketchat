@@ -10,20 +10,23 @@ import (
 var AllConns = make([]net.Conn, 0)
 var Mfile *os.File
 
-func communication(conn net.Conn) {
-	defer func() {
-		conn.Close() // Close connection
-		remove := func() {
-			for i, v := range AllConns {
-				if v == conn {
-					AllConns = append(AllConns[:i], AllConns[i+1:]...)
-				}
+func closeConnection(conn net.Conn) {
+	conn.Close() // Close connection
+	remove := func() {
+		for i, v := range AllConns {
+			if v == conn {
+				AllConns = append(AllConns[:i], AllConns[i+1:]...)
 			}
 		}
-		remove()
-	}()
+	}
+	remove()
+	fmt.Println("Closing connection: ", conn.RemoteAddr().String())
+}
 
-	buf := make([]byte, 64) // Bufer for client message
+func communication(conn net.Conn) {
+	defer closeConnection(conn)
+
+	buf := make([]byte, 32) // Bufer for client message
 
 	// Get client's name
 	greeting := "Please, enter your nickname"
@@ -34,18 +37,32 @@ func communication(conn net.Conn) {
 	Mfile.Write([]byte(nickname + " joined to chat!"))
 
 	for {
-		conn.Read(buf)
-		Mfile.Write(buf)
-		Broadcast(nickname, buf)
-	}
+		// check if connection alive?
 
-	//fmt.Println("Close connection:", conn.RemoteAddr())
+		conn.Read(buf)
+
+		Mfile.Write(buf)
+		if len(AllConns) > 1 {
+			r := Broadcast(conn, nickname, buf)
+			if r == 1 {
+				break
+			}
+		}
+	}
 }
 
-func Broadcast(nickname string, buf []byte) {
-	for _, conn := range AllConns {
-		conn.Write(append([]byte(nickname+": "), buf...))
+func Broadcast(conn net.Conn, nickname string, buf []byte) (r int) {
+	fmt.Println("This is Broadcasting")
+	for _, c := range AllConns {
+		if c != conn {
+			//fmt.Println("Trying to write to", c.RemoteAddr().String())
+			_, err := c.Write(append([]byte(nickname+": "), buf...))
+			if err != nil {
+				return 1
+			}
+		}
 	}
+	return 0
 }
 
 func main() {
@@ -71,7 +88,7 @@ func main() {
 		}
 
 		fmt.Println(conn.RemoteAddr())
-		// allConns = append(allConns, conn)
+		AllConns = append(AllConns, conn)
 
 		go communication(conn)
 	}
