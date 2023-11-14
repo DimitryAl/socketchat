@@ -5,11 +5,10 @@ import (
 	"log"
 	"net"
 	"os"
-	client "socketchat/client"
 )
 
 var AllConns = make([]net.Conn, 0)
-var mfile *os.File
+var Mfile *os.File
 
 func communication(conn net.Conn) {
 	defer func() {
@@ -27,46 +26,26 @@ func communication(conn net.Conn) {
 	buf := make([]byte, 64) // Bufer for client message
 
 	// Get client's name
-	greeting := "Please, enter your nickname (1 word)"
+	greeting := "Please, enter your nickname"
 	conn.Write([]byte(greeting))
-	mfile.Write([]byte(greeting))
 	conn.Read(buf)
+	nickname := string(buf)
+	conn.Write([]byte(nickname + " joined to chat!"))
+	Mfile.Write([]byte(nickname + " joined to chat!"))
 
-	client_name := string(buf)
-	// Сделать это отдельной функцией
-	res := false
-	test := func() {
-		if _, ok := client.KnownClients[client_name]; ok == true {
-			res = true
-		}
-	}
-	test()
-
-	// If nickname is known then load few last messages
-	if res {
-		//message_cnt := 0
-		first_message := 0
-		if len(client.KnownClients[client_name]) < 10 {
-			first_message = 0
-		} else {
-			first_message = len(client.KnownClients[client_name]) - 1 - 10
-		}
-		for i := first_message; i < first_message+10; i++ {
-			//message_cnt++
-			if i < len(client.KnownClients[client_name]) {
-				conn.Write([]byte(client.KnownClients[client_name][i]))
-				mfile.Write()
-			}
-		}
-	} else { // else add him to list
-		answer := "Your nickname is " + string(buf)
-		conn.Write([]byte(answer))
-		client.KnownClients[client_name] = append(client.KnownClients[client_name], greeting, client_name, answer)
-	}
 	for {
-
+		conn.Read(buf)
+		Mfile.Write(buf)
+		Broadcast(nickname, buf)
 	}
-	fmt.Println("Close connection:", conn.RemoteAddr())
+
+	//fmt.Println("Close connection:", conn.RemoteAddr())
+}
+
+func Broadcast(nickname string, buf []byte) {
+	for _, conn := range AllConns {
+		conn.Write(append([]byte(nickname+": "), buf...))
+	}
 }
 
 func main() {
@@ -78,11 +57,11 @@ func main() {
 		log.Fatal("error occured:", err)
 	}
 
-	mfile, err := os.OpenFile("server_data.txt", os.O_RDWR, 0666)
+	Mfile, err := os.OpenFile("server_data.txt", os.O_RDWR, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer mfile.Close()
+	defer Mfile.Close()
 
 	for {
 		conn, err := listener.Accept() // Accept TCP-connection from client
