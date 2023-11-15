@@ -6,6 +6,7 @@ import threading
 
 out_message = ""
 flag = False
+nickname = "You"
 
 
 def clearMessage(message: str) -> str:
@@ -51,13 +52,15 @@ def main():
 			if read_socket[0] == server:
 				in_message = server.recv(2048).decode('utf-8')
 				in_message = clearMessage(in_message)
-				print(in_message)
+				print("\r", in_message, sep="")
+				print("\rYou: ", end="")
 				writeCache(in_message)
 		else:
 			global out_message
 			global flag
 			if flag:
 				server.send(bytes(out_message, 'utf-8'))
+				print("\rYou: ", end="")
 				writeCache(out_message) 
 				out_message = ""
 				flag = False
@@ -69,8 +72,11 @@ def reading():
 	global out_message
 	while True:
 		if flag == False:
-			out_message = sys.stdin.readline()
-			out_message = out_message[:-1]	
+			#print(f"{nickname}: ", end='')
+			#out_message = sys.stdin.readline()
+			out_message = input("")
+			#print("\r", nickname, out_message)
+			out_message = out_message[:]	
 			flag = True
 			sys.stdin.flush()
 
