@@ -8,13 +8,29 @@ out_message = ""
 flag = False
 
 
+def clearMessage(message: str) -> str:
+	res = ""
+	for i in message:
+		if i != "\x00":
+			res += i
+	return res
+
+
+def writeCache(s):
+	with open("client_cache.txt", "a") as f:
+		f.write(s + '\n')
+
+
 def main():
 
-	f = open("client_cache.txt", "r+") 
-
+	f = open("client_cache.txt", "r")
 	last_messages = f.readlines()
 	if len(last_messages) != 0:
-		print(last_messages[:-6:-1])
+		last_messages = last_messages[:-6:-1]
+		for line in last_messages[::-1]:
+			print(line, end='')
+		print()
+	f.close()
 
 	# server_ip = input("Enter server's ip:\t")
 	# server_port = int(input("Enter server's port\t"))
@@ -29,21 +45,20 @@ def main():
 		exit()
 
 	while True:
-		read_socket, _, _ = select.select([server], [], [], 1)
+		read_socket, _, _ = select.select([server], [], [], 0.25)
 
 		if len(read_socket) > 0:
 			if read_socket[0] == server:
-				in_message = server.recv(2048)
-				print(str(in_message))
-				f.write(str(in_message) + '\n')
+				in_message = server.recv(2048).decode('utf-8')
+				in_message = clearMessage(in_message)
+				print(in_message)
+				writeCache(in_message)
 		else:
-			#out_message = sys.stdin.readline()
-			#out_message = input("You: ")
 			global out_message
 			global flag
 			if flag:
 				server.send(bytes(out_message, 'utf-8'))
-				f.write(out_message + '\n') 
+				writeCache(out_message) 
 				out_message = ""
 				flag = False
 
@@ -54,13 +69,15 @@ def reading():
 	global out_message
 	while True:
 		if flag == False:
-			out_message = sys.stdin.readline()	
+			out_message = sys.stdin.readline()
+			out_message = out_message[:-1]	
 			flag = True
 			sys.stdin.flush()
 
 
 
-
+f = open("client_cache.txt", "a")
+f.close()
 p1 = threading.Thread(target=reading)
 p2 = threading.Thread(target=main)
 p1.start()

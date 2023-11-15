@@ -30,39 +30,36 @@ func communication(conn net.Conn) {
 
 	// Get client's name
 	greeting := "Please, enter your nickname"
-	conn.Write([]byte(greeting))
+	conn.Write([]byte("Server: " + greeting))
 	conn.Read(buf)
 	nickname := string(buf)
-	conn.Write([]byte(nickname + " joined to chat!"))
+
+	conn.Write([]byte("Server: " + nickname + " joined to chat!"))
+	Broadcast(conn, "Server", []byte(nickname+" joined to chat!"))
 	Mfile.Write([]byte(nickname + " joined to chat!"))
 
 	for {
-		// check if connection alive?
 
-		conn.Read(buf)
+		buf = make([]byte, 32)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
 
 		Mfile.Write(buf)
+
 		if len(AllConns) > 1 {
-			r := Broadcast(conn, nickname, buf)
-			if r == 1 {
-				break
-			}
+			Broadcast(conn, nickname, buf)
 		}
 	}
 }
 
-func Broadcast(conn net.Conn, nickname string, buf []byte) (r int) {
-	fmt.Println("This is Broadcasting")
+func Broadcast(conn net.Conn, nickname string, buf []byte) {
 	for _, c := range AllConns {
 		if c != conn {
-			//fmt.Println("Trying to write to", c.RemoteAddr().String())
-			_, err := c.Write(append([]byte(nickname+": "), buf...))
-			if err != nil {
-				return 1
-			}
+			c.Write(append([]byte(nickname+": "), buf...))
 		}
 	}
-	return 0
 }
 
 func main() {
