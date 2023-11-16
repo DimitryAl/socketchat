@@ -7,6 +7,8 @@ import threading
 out_message = ""
 flag = False
 nickname = "You"
+server_ip = ""
+server_port = ""
 
 
 def clearMessage(message: str) -> str:
@@ -32,11 +34,6 @@ def main():
 			print(line, end='')
 		print()
 	f.close()
-
-	# server_ip = input("Enter server's ip:\t")
-	# server_port = int(input("Enter server's port\t"))
-	server_ip = "127.0.0.1"
-	server_port = int(8080)
 
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 	try:
@@ -72,10 +69,7 @@ def reading():
 	global out_message
 	while True:
 		if flag == False:
-			#print(f"{nickname}: ", end='')
-			#out_message = sys.stdin.readline()
 			out_message = input("")
-			#print("\r", nickname, out_message)
 			out_message = out_message[:]	
 			flag = True
 			sys.stdin.flush()
@@ -84,10 +78,11 @@ def reading():
 
 f = open("client_cache.txt", "a")
 f.close()
+server_ip = input("Enter server's ip:\t")
+server_port = int(input("Enter server's port\t"))
 p1 = threading.Thread(target=reading)
 p2 = threading.Thread(target=main)
 p1.start()
 p2.start()
 p1.join()
 p2.join()
-# main()
